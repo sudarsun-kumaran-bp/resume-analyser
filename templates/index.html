@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Resume Analyser</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --green: #00d97e;
+    --red: #ff4d6d;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 20% 10%, #6c63ff18 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 80%, #ff658418 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  header { text-align: center; margin-bottom: 3rem; }
+
+  .badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #6c63ff22, #ff658422);
+    border: 1px solid #6c63ff44;
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 0.35rem 1rem;
+    border-radius: 100px;
+    margin-bottom: 1.2rem;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #fff 40%, #6c63ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.75rem;
+  }
+
+  header p {
+    color: var(--muted);
+    font-size: 1rem;
+    font-weight: 300;
+  }
+
+  /* Card */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    padding: 2.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: #6c63ff08; }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+  .upload-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+  .upload-zone p { color: var(--muted); font-size: 0.9rem; }
+  .upload-zone .file-name { color: var(--accent); font-weight: 500; margin-top: 0.5rem; display: none; }
+
+  /* Textarea */
+  textarea {
+    width: 100%;
+    background: #0d0d15;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    resize: vertical;
+    min-height: 160px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+
+  /* Button */
+  .btn {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, var(--accent), #9b59ff);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 30px #6c63ff44; }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* Loading */
+  .loader { display: none; text-align: center; padding: 3rem; }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Results */
+  #results { display: none; }
+
+  .score-ring {
+    text-align: center;
+    padding: 2rem 0;
+  }
+
+  .ring-wrap {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 1rem;
+  }
+
+  .ring-wrap svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--border); stroke-width: 8; }
+  .ring-fill {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    stroke-dasharray: 377;
+    stroke-dashoffset: 377;
+    transition: stroke-dashoffset 1.2s ease;
+  }
+
+  .score-number {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .score-number span:first-child {
+    font-family: 'Syne', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 800;
+  }
+
+  .score-number span:last-child {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .score-label {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  /* Tags */
+  .tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+
+  .tag {
+    padding: 0.3rem 0.8rem;
+    border-radius: 100px;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+
+  .tag.green { background: #00d97e18; color: var(--green); border: 1px solid #00d97e33; }
+  .tag.red { background: #ff4d6d18; color: var(--red); border: 1px solid #ff4d6d33; }
+
+  /* List items */
+  .list-item {
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    color: #c8c8d8;
+  }
+
+  .list-item:last-child { border-bottom: none; }
+  .list-item .icon { flex-shrink: 0; margin-top: 1px; }
+
+  .summary-box {
+    background: #6c63ff0d;
+    border: 1px solid #6c63ff33;
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #c0c0d8;
+    font-style: italic;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .error-box {
+    background: #ff4d6d18;
+    border: 1px solid #ff4d6d44;
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    color: var(--red);
+    font-size: 0.9rem;
+    display: none;
+    margin-top: 1rem;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="badge">Smart Analysis</div>
+    <h1>Resume Analyser</h1>
+    <p><p>Upload your resume and paste a JD — get instant smart feedback</p></p>
+  </header>
+
+  <!-- Upload -->
+  <div class="card">
+    <div class="card-title">01 — Upload Resume (PDF)</div>
+    <div class="upload-zone" id="dropzone">
+      <input type="file" id="resumeFile" accept=".pdf">
+      <div class="upload-icon">📄</div>
+      <p>Drop your PDF here or click to browse</p>
+      <div class="file-name" id="fileName"></div>
+    </div>
+  </div>
+
+  <!-- JD -->
+  <div class="card">
+    <div class="card-title">02 — Paste Job Description</div>
+    <textarea id="jdText" placeholder="Paste the full job description here..."></textarea>
+  </div>
+
+  <button class="btn" id="analyseBtn" onclick="analyse()">Analyse Resume →</button>
+  <div class="error-box" id="errorBox"></div>
+
+  <!-- Loading -->
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    <p style="color: var(--muted); font-size: 0.9rem;">Analysing with AI...</p>
+  </div>
+
+  <!-- Results -->
+  <div id="results">
+    <div class="card" style="margin-top: 1.5rem;">
+      <div class="card-title">Match Score</div>
+      <div class="score-ring">
+        <div class="ring-wrap">
+          <svg viewBox="0 0 140 140" width="140" height="140">
+            <circle class="ring-bg" cx="70" cy="70" r="60"/>
+            <circle class="ring-fill" id="ringFill" cx="70" cy="70" r="60"/>
+          </svg>
+          <div class="score-number">
+            <span id="scoreNum">0</span>
+            <span>Match</span>
+          </div>
+        </div>
+        <div class="score-label" id="scoreLabel"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Summary</div>
+      <div class="summary-box" id="summary"></div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">✅ Matched Skills</div>
+        <div class="tags" id="matchedSkills"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">❌ Missing Skills</div>
+        <div class="tags" id="missingSkills"></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">💪 Strengths</div>
+        <div id="strengths"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔧 Improvements</div>
+        <div id="improvements"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // File upload display
+  document.getElementById('resumeFile').addEventListener('change', function() {
+    const name = this.files[0]?.name;
+    if (name) {
+      document.getElementById('fileName').style.display = 'block';
+      document.getElementById('fileName').textContent = '✓ ' + name;
+    }
+  });
+
+  // Drag & drop
+  const dz = document.getElementById('dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('drag');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/pdf') {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      document.getElementById('resumeFile').files = dt.files;
+      document.getElementById('fileName').style.display = 'block';
+      document.getElementById('fileName').textContent = '✓ ' + file.name;
+    }
+  });
+
+  async function analyse() {
+    const file = document.getElementById('resumeFile').files[0];
+    const jd = document.getElementById('jdText').value.trim();
+    const errBox = document.getElementById('errorBox');
+
+    errBox.style.display = 'none';
+
+    if (!file || !jd) {
+      errBox.textContent = 'Please upload a resume and paste a job description.';
+      errBox.style.display = 'block';
+      return;
+    }
+
+    document.getElementById('analyseBtn').disabled = true;
+    document.getElementById('loader').style.display = 'block';
+    document.getElementById('results').style.display = 'none';
+
+    const form = new FormData();
+    form.append('resume', file);
+    form.append('jd', jd);
+
+    try {
+      const res = await fetch('/analyse', { method: 'POST', body: form });
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error);
+
+      showResults(data);
+    } catch (e) {
+      errBox.textContent = 'Error: ' + e.message;
+      errBox.style.display = 'block';
+    } finally {
+      document.getElementById('analyseBtn').disabled = false;
+      document.getElementById('loader').style.display = 'none';
+    }
+  }
+
+  function showResults(d) {
+    const score = d.score;
+
+    // Ring animation
+    const ring = document.getElementById('ringFill');
+    const circumference = 377;
+    const offset = circumference - (score / 100) * circumference;
+    const color = score >= 70 ? '#00d97e' : score >= 40 ? '#6c63ff' : '#ff4d6d';
+    ring.style.stroke = color;
+    setTimeout(() => ring.style.strokeDashoffset = offset, 100);
+
+    // Score number count-up
+    let cur = 0;
+    const interval = setInterval(() => {
+      cur = Math.min(cur + 2, score);
+      document.getElementById('scoreNum').textContent = cur + '%';
+      if (cur >= score) clearInterval(interval);
+    }, 20);
+
+    document.getElementById('scoreLabel').textContent =
+      score >= 70 ? '🎯 Strong Match' : score >= 40 ? '⚡ Moderate Match' : '⚠️ Weak Match';
+    document.getElementById('scoreLabel').style.color = color;
+
+    document.getElementById('summary').textContent = d.summary;
+
+    document.getElementById('matchedSkills').innerHTML =
+      (d.matched_skills || []).map(s => `<span class="tag green">${s}</span>`).join('') || '<span style="color:var(--muted);font-size:.85rem">None found</span>';
+
+    document.getElementById('missingSkills').innerHTML =
+      (d.missing_skills || []).map(s => `<span class="tag red">${s}</span>`).join('') || '<span style="color:var(--muted);font-size:.85rem">None missing</span>';
+
+    document.getElementById('strengths').innerHTML =
+      (d.strengths || []).map(s => `<div class="list-item"><span class="icon">✦</span>${s}</div>`).join('');
+
+    document.getElementById('improvements').innerHTML =
+      (d.improvements || []).map(s => `<div class="list-item"><span class="icon">→</span>${s}</div>`).join('');
+
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+  }
+</script>
+</body>
+</html>
